@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Directory</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: white;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+
+    header svg { flex-shrink: 0; }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-card .label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      font-weight: 600;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0f3460;
+      line-height: 1;
+    }
+
+    .toolbar {
+      background: white;
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #aaa;
+      pointer-events: none;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 12px 10px 38px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-wrap input:focus { border-color: #0f3460; }
+
+    select {
+      padding: 10px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: white;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    select:focus { border-color: #0f3460; }
+
+    #resultCount {
+      font-size: 0.85rem;
+      color: #888;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: #f8f9fb;
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
+      border-bottom: 1.5px solid #eee;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    thead th:hover { background: #eef0f4; }
+
+    thead th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 0.7rem; }
+    thead th.active .sort-icon { opacity: 1; color: #0f3460; }
+
+    tbody tr {
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.12s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f7f8fc; }
+
+    td {
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      vertical-align: middle;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .name-cell .name { font-weight: 600; }
+    .name-cell .email { font-size: 0.8rem; color: #888; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+    }
+
+    .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 1rem; }
+
+    #loadingRow td {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 700px) {
+      .container { padding: 0 12px; }
+      td:nth-child(4), th:nth-child(4),
+      td:nth-child(6), th:nth-child(6) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <circle cx="18" cy="18" r="18" fill="rgba(255,255,255,0.1)"/>
+    <circle cx="18" cy="14" r="5" fill="white" opacity="0.9"/>
+    <path d="M8 28c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  </svg>
+  <div>
+    <h1>Employee Directory</h1>
+    <p>Manage and view all company employees</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <span class="label">Total Employees</span>
+      <span class="value" id="statTotal">—</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Departments</span>
+      <span class="value" id="statDepts">—</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Avg. Salary</span>
+      <span class="value" id="statSalary">—</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input type="text" id="searchInput" placeholder="Search by name, position, or email…" />
+    </div>
+    <select id="deptFilter">
+      <option value="all">All Departments</option>
+    </select>
+    <span id="resultCount"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-col="id">ID <span class="sort-icon">▲</span></th>
+          <th data-col="name">Employee <span class="sort-icon">▲</span></th>
+          <th data-col="department">Department <span class="sort-icon">▲</span></th>
+          <th data-col="position">Position <span class="sort-icon">▲</span></th>
+          <th data-col="hire_date">Hire Date <span class="sort-icon">▲</span></th>
+          <th data-col="salary">Salary <span class="sort-icon">▲</span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr id="loadingRow"><td colspan="6">Loading employees…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const DEPT_COLORS = {
+    'Engineering': ['#e8f4fd', '#1565c0'],
+    'Marketing':   ['#fce4ec', '#c2185b'],
+    'HR':          ['#e8f5e9', '#2e7d32'],
+    'Finance':     ['#fff8e1', '#f57f17'],
+    'Design':      ['#f3e5f5', '#6a1b9a'],
+  };
+
+  const AVATAR_COLORS = ['#e63946','#2196f3','#4caf50','#ff9800','#9c27b0','#00bcd4','#795548','#607d8b','#f06292','#26a69a'];
+
+  let sortCol = 'id';
+  let sortOrder = 'asc';
+  let allEmployees = [];
+
+  function avatarColor(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+
+  function initials(name) {
+    return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  function deptBadge(dept) {
+    const [bg, text] = DEPT_COLORS[dept] || ['#e0e0e0', '#555'];
+    return `<span class="badge" style="background:${bg};color:${text}">${dept}</span>`;
+  }
+
+  function formatDate(d) {
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+
+  function formatSalary(n) {
+    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0 });
+  }
+
+  function renderTable(employees) {
+    const tbody = document.getElementById('tableBody');
+    document.getElementById('resultCount').textContent = `${employees.length} result${employees.length !== 1 ? 's' : ''}`;
+
+    if (employees.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <p>No employees match your search.</p>
+        </div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = employees.map(emp => `
+      <tr>
+        <td style="color:#aaa;font-size:0.82rem">#${emp.id}</td>
+        <td>
+          <div class="name-cell">
+            <div class="avatar" style="background:${avatarColor(emp.name)}">${initials(emp.name)}</div>
+            <div>
+              <div class="name">${emp.name}</div>
+              <div class="email">${emp.email}</div>
+            </div>
+          </div>
+        </td>
+        <td>${deptBadge(emp.department)}</td>
+        <td>${emp.position}</td>
+        <td>${formatDate(emp.hire_date)}</td>
+        <td style="font-weight:600">${formatSalary(emp.salary)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function updateSortHeaders() {
+    document.querySelectorAll('thead th').forEach(th => {
+      const col = th.dataset.col;
+      th.classList.toggle('active', col === sortCol);
+      const icon = th.querySelector('.sort-icon');
+      if (col === sortCol) {
+        icon.textContent = sortOrder === 'asc' ? '▲' : '▼';
+      } else {
+        icon.textContent = '▲';
+      }
+    });
+  }
+
+  async function loadDepartments() {
+    const res = await fetch('/api/departments');
+    const depts = await res.json();
+    const sel = document.getElementById('deptFilter');
+    depts.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      sel.appendChild(opt);
+    });
+    document.getElementById('statDepts').textContent = depts.length;
+  }
+
+  async function loadEmployees() {
+    const search = document.getElementById('searchInput').value;
+    const department = document.getElementById('deptFilter').value;
+    const params = new URLSearchParams({ search, department, sort: sortCol, order: sortOrder });
+    const res = await fetch(`/api/employees?${params}`);
+    allEmployees = await res.json();
+    renderTable(allEmployees);
+
+    if (department === 'all' && !search) {
+      document.getElementById('statTotal').textContent = allEmployees.length;
+      const avg = allEmployees.reduce((s, e) => s + e.salary, 0) / (allEmployees.length || 1);
+      document.getElementById('statSalary').textContent = '$' + Math.round(avg / 1000) + 'k';
+    }
+  }
+
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortOrder = 'asc';
+      }
+      updateSortHeaders();
+      loadEmployees();
+    });
+  });
+
+  let debounceTimer;
+  document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadEmployees, 250);
+  });
+
+  document.getElementById('deptFilter').addEventListener('change', loadEmployees);
+
+  updateSortHeaders();
+  loadDepartments();
+  loadEmployees();
+</script>
+
+</body>
+</html>
