@@ -233,6 +233,160 @@
       td:nth-child(4), th:nth-child(4),
       td:nth-child(6), th:nth-child(6) { display: none; }
     }
+
+    /* ── Add Employee button ── */
+    .btn-add {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: #0f3460;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-add:hover { background: #1a4a80; }
+    .btn-add:active { transform: scale(0.97); }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      transform: translateY(16px);
+      transition: transform 0.2s;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .modal-header h2 { font-size: 1.2rem; font-weight: 700; color: #1a1a2e; }
+
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #aaa;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #555; background: #f0f0f0; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #666;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 10px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: #0f3460; }
+    .form-group input.error,
+    .form-group select.error { border-color: #e63946; }
+
+    .form-error {
+      font-size: 0.78rem;
+      color: #e63946;
+      min-height: 14px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .btn-cancel {
+      padding: 10px 18px;
+      background: #f0f0f0;
+      color: #555;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-cancel:hover { background: #e4e4e4; }
+
+    .btn-submit {
+      padding: 10px 20px;
+      background: #0f3460;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #1a4a80; }
+    .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+
+    .submit-alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 16px;
+      display: none;
+    }
+    .submit-alert.success { background: #e8f5e9; color: #2e7d32; display: block; }
+    .submit-alert.error   { background: #fce4ec; color: #c62828; display: block; }
   </style>
 </head>
 <body>
@@ -277,6 +431,12 @@
       <option value="all">All Departments</option>
     </select>
     <span id="resultCount"></span>
+    <button class="btn-add" id="openModalBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      Add Employee
+    </button>
   </div>
 
   <div class="table-wrap">
@@ -297,6 +457,77 @@
     </table>
   </div>
 
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add New Employee</h2>
+      <button class="modal-close" id="closeModalBtn" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="addEmployeeForm" novalidate>
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label for="field-name">Full Name <span style="color:#e63946">*</span></label>
+          <input type="text" id="field-name" placeholder="e.g. Jane Doe" required />
+          <span class="form-error" id="err-name"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="field-email">Email <span style="color:#e63946">*</span></label>
+          <input type="email" id="field-email" placeholder="jane@example.com" required />
+          <span class="form-error" id="err-email"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="field-phone">Phone</label>
+          <input type="text" id="field-phone" placeholder="555-0123" />
+          <span class="form-error" id="err-phone"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="field-department">Department <span style="color:#e63946">*</span></label>
+          <select id="field-department" required>
+            <option value="">Select department…</option>
+          </select>
+          <span class="form-error" id="err-department"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="field-position">Position <span style="color:#e63946">*</span></label>
+          <input type="text" id="field-position" placeholder="e.g. Senior Engineer" required />
+          <span class="form-error" id="err-position"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="field-hire_date">Hire Date <span style="color:#e63946">*</span></label>
+          <input type="date" id="field-hire_date" required />
+          <span class="form-error" id="err-hire_date"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="field-salary">Salary (USD) <span style="color:#e63946">*</span></label>
+          <input type="number" id="field-salary" min="0" step="1000" placeholder="e.g. 75000" required />
+          <span class="form-error" id="err-salary"></span>
+        </div>
+
+      </div>
+
+      <div class="submit-alert" id="submitAlert"></div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="cancelModalBtn">Cancel</button>
+        <button type="submit" class="btn-submit" id="submitBtn">Add Employee</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -391,6 +622,8 @@
     const res = await fetch('/api/departments');
     const depts = await res.json();
     const sel = document.getElementById('deptFilter');
+    // Keep only the "All Departments" default option, then repopulate
+    sel.innerHTML = '<option value="all">All Departments</option>';
     depts.forEach(d => {
       const opt = document.createElement('option');
       opt.value = d; opt.textContent = d;
@@ -439,6 +672,127 @@
   updateSortHeaders();
   loadDepartments();
   loadEmployees();
+
+  // ── Modal ──────────────────────────────────────────────────────────────
+  const modalOverlay = document.getElementById('modalOverlay');
+  const addForm      = document.getElementById('addEmployeeForm');
+  const submitBtn    = document.getElementById('submitBtn');
+  const submitAlert  = document.getElementById('submitAlert');
+
+  function openModal() {
+    // Populate department dropdown from the already-loaded list
+    const deptSel = document.getElementById('field-department');
+    deptSel.innerHTML = '<option value="">Select department…</option>';
+    document.querySelectorAll('#deptFilter option').forEach(opt => {
+      if (opt.value && opt.value !== 'all') {
+        const o = document.createElement('option');
+        o.value = opt.value;
+        o.textContent = opt.textContent;
+        deptSel.appendChild(o);
+      }
+    });
+    modalOverlay.classList.add('open');
+    document.getElementById('field-name').focus();
+  }
+
+  function closeModal() {
+    modalOverlay.classList.remove('open');
+    addForm.reset();
+    clearFormErrors();
+    submitAlert.className = 'submit-alert';
+    submitAlert.textContent = '';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Add Employee';
+  }
+
+  function clearFormErrors() {
+    document.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+    document.querySelectorAll('.form-group input, .form-group select').forEach(el => el.classList.remove('error'));
+  }
+
+  function showFieldError(fieldId, msg) {
+    document.getElementById('field-' + fieldId).classList.add('error');
+    document.getElementById('err-' + fieldId).textContent = msg;
+  }
+
+  function validateForm() {
+    clearFormErrors();
+    let valid = true;
+    const name      = document.getElementById('field-name').value.trim();
+    const email     = document.getElementById('field-email').value.trim();
+    const dept      = document.getElementById('field-department').value;
+    const position  = document.getElementById('field-position').value.trim();
+    const hire_date = document.getElementById('field-hire_date').value;
+    const salary    = document.getElementById('field-salary').value;
+
+    if (!name)      { showFieldError('name', 'Full name is required.');     valid = false; }
+    if (!email)     { showFieldError('email', 'Email is required.');         valid = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      showFieldError('email', 'Enter a valid email address.'); valid = false; }
+    if (!dept)      { showFieldError('department', 'Select a department.');  valid = false; }
+    if (!position)  { showFieldError('position', 'Position is required.');   valid = false; }
+    if (!hire_date) { showFieldError('hire_date', 'Hire date is required.'); valid = false; }
+    if (salary === '' || Number(salary) < 0) {
+                      showFieldError('salary', 'Enter a valid salary.');      valid = false; }
+    return valid;
+  }
+
+  document.getElementById('openModalBtn').addEventListener('click', openModal);
+  document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+  document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  addForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const payload = {
+      name:       document.getElementById('field-name').value.trim(),
+      email:      document.getElementById('field-email').value.trim(),
+      phone:      document.getElementById('field-phone').value.trim(),
+      department: document.getElementById('field-department').value,
+      position:   document.getElementById('field-position').value.trim(),
+      hire_date:  document.getElementById('field-hire_date').value,
+      salary:     Number(document.getElementById('field-salary').value),
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+    submitAlert.className = 'submit-alert';
+    submitAlert.textContent = '';
+
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        submitAlert.className = 'submit-alert error';
+        submitAlert.textContent = data.error || 'An error occurred. Please try again.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Employee';
+        return;
+      }
+
+      submitAlert.className = 'submit-alert success';
+      submitAlert.textContent = `${data.name} was added successfully!`;
+      setTimeout(() => {
+        closeModal();
+        loadEmployees();
+        loadDepartments().then(() => {});
+      }, 1000);
+
+    } catch {
+      submitAlert.className = 'submit-alert error';
+      submitAlert.textContent = 'Network error. Please try again.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add Employee';
+    }
+  });
 </script>
 
 </body>

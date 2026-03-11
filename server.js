@@ -6,6 +6,30 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+
+app.post('/api/employees', (req, res) => {
+  const { name, department, position, email, phone, hire_date, salary } = req.body;
+
+  if (!name || !department || !position || !email || !hire_date || salary == null) {
+    return res.status(400).json({ error: 'Missing required fields.' });
+  }
+
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO employees (name, department, position, email, phone, hire_date, salary)
+      VALUES (@name, @department, @position, @email, @phone, @hire_date, @salary)
+    `);
+    const result = stmt.run({ name, department, position, email, phone: phone || null, hire_date, salary: Number(salary) });
+    const newEmployee = db.prepare('SELECT * FROM employees WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(newEmployee);
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      return res.status(409).json({ error: 'An employee with that email already exists.' });
+    }
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
 
 app.get('/api/employees', (req, res) => {
   const { search, department, sort = 'id', order = 'asc' } = req.query;
