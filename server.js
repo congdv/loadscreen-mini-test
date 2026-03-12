@@ -59,6 +59,35 @@ app.get('/api/employees', (req, res) => {
   res.json(employees);
 });
 
+app.put('/api/employees/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { name, department, position, email, phone, hire_date, salary } = req.body;
+
+  if (!name || !department || !position || !email || !hire_date || salary == null) {
+    return res.status(400).json({ error: 'Missing required fields.' });
+  }
+
+  try {
+    const existing = db.prepare('SELECT id FROM employees WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Employee not found.' });
+
+    db.prepare(`
+      UPDATE employees
+      SET name=@name, department=@department, position=@position,
+          email=@email, phone=@phone, hire_date=@hire_date, salary=@salary
+      WHERE id=@id
+    `).run({ id, name, department, position, email, phone: phone || null, hire_date, salary: Number(salary) });
+
+    const updated = db.prepare('SELECT * FROM employees WHERE id = ?').get(id);
+    res.json(updated);
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      return res.status(409).json({ error: 'An employee with that email already exists.' });
+    }
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
 app.get('/api/departments', (req, res) => {
   const departments = db.prepare('SELECT DISTINCT department FROM employees ORDER BY department').all();
   res.json(departments.map(d => d.department));
