@@ -1,33 +1,37 @@
-import { html } from 'htm/preact';
+import { esc } from '../utils.js';
 
-export function Toolbar({ departments, search, deptFilter, resultCount, onSearch, onDeptChange, onAddClick }) {
-    return html`
+export function renderToolbar({ departments, search, deptFilter, resultCount }) {
+  const deptOptions = departments
+    .map(d => `<option value="${esc(d)}"${deptFilter === d ? ' selected' : ''}>${esc(d)}</option>`)
+    .join('');
+
+  return `
     <div class="toolbar">
       <div class="search-wrap">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
         </svg>
         <input
+          id="search-input"
           type="text"
-          placeholder="Search by name, position, or email…"
-          value=${search}
-          onInput=${e => onSearch(e.target.value)}
+          placeholder="Search by name, position, or email\u2026"
+          value="${esc(search)}"
         />
       </div>
 
-      <select value=${deptFilter} onChange=${e => onDeptChange(e.target.value)}>
-        <option value="all">All Departments</option>
-        ${departments.map(d => html`<option key=${d} value=${d}>${d}</option>`)}
+      <select id="dept-filter">
+        <option value="all"${deptFilter === 'all' ? ' selected' : ''}>All Departments</option>
+        ${deptOptions}
       </select>
 
-      <span id="resultCount">${resultCount}</span>
+      <span id="resultCount">${esc(resultCount)}</span>
 
-      <button class="btn-add" onClick=${onAddClick}>
+      <button id="btn-add" class="btn-add">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <path d="M12 5v14M5 12h14"/>
         </svg>
         Add Employee
       </button>
     </div>
-  `;
+    `;
 }

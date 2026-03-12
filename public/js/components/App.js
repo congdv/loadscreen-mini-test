@@ -1,143 +1,213 @@
-import { html } from 'htm/preact';
-import { useState, useEffect, useRef } from 'preact/hooks';
-import { fetchDepartments, fetchEmployees, deleteEmployee } from '../api.js';
-import { Header } from './Header.js';
-import { StatsRow } from './StatsRow.js';
-import { Toolbar } from './Toolbar.js';
-import { EmployeeTable } from './EmployeeTable.js';
-import { Modal } from './Modal.js';
-import { SalaryPieChart } from './SalaryPieChart.js';
+import { fetchDepartments, fetchEmployees, deleteEmployee, fetchSalaryByDepartment } from '../api.js';
+import { renderHeader } from './Header.js';
+import { renderStatsRow } from './StatsRow.js';
+import { renderToolbar } from './Toolbar.js';
+import { renderEmployeeTable } from './EmployeeTable.js';
+import { renderChartShell, updateChart } from './SalaryPieChart.js';
+import { initModal, openModal } from './Modal.js';
 
-export function App() {
-    // ── Data ──────────────────────────────────────────────────────────────────
-    const [allEmployees, setAllEmployees] = useState([]); // unfiltered, for stats
-    const [employees, setEmployees] = useState([]); // currently displayed (filtered/sorted)
-    const [departments, setDepartments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [chartKey, setChartKey] = useState(0);
+// ── App state ─────────────────────────────────────────────────────────────────
+const state = {
+    allEmployees: [],
+    employees: [],
+    departments: [],
+    loading: true,
+    search: '',
+    deptFilter: 'all',
+    sortCol: 'id',
+    sortOrder: 'asc',
+    page: 1,
+};
 
-    // ── Filter / sort state ───────────────────────────────────────────────────
-    const [search, setSearch] = useState('');
-    const [deptFilter, setDeptFilter] = useState('all');
-    const [sortCol, setSortCol] = useState('id');
-    const [sortOrder, setSortOrder] = useState('asc');
+let debounceTimer = null;
 
-    // ── Modal state ───────────────────────────────────────────────────────────
-    // null = closed | false = open (add mode) | emp object = open (edit mode)
-    const [modalEmployee, setModalEmployee] = useState(null);
+// ── Entry point ───────────────────────────────────────────────────────────────
+export function init(root) {
+    // Static shell — IDs used as render targets
+    root.innerHTML = `
+        <div id="app-header"></div>
+        <div class="container">
+            <div id="stats-root"></div>
+            <div id="chart-root"></div>
+            <div id="toolbar-root"></div>
+            <div id="table-root"></div>
+        </div>
+        <div id="modal-root"></div>`;
 
-    const debounceRef = useRef(null);
+    document.getElementById('app-header').innerHTML = renderHeader();
+    document.getElementById('chart-root').innerHTML = renderChartShell();
 
-    // ── Load departments once on mount ────────────────────────────────────────
-    useEffect(() => {
-        fetchDepartments().then(setDepartments).catch(console.error);
-    }, []);
+    initModal(document.getElementById('modal-root'));
 
-    // ── Reload all employees (for stats) when a save happens ─────────────────
-    async function reloadAll() {
-        try {
-            const [all, depts] = await Promise.all([
-                fetchEmployees(),
-                fetchDepartments(),
-            ]);
-            setAllEmployees(all);
-            setDepartments(depts);
-            setChartKey(k => k + 1);
-        } catch (err) {
-            console.error(err);
-        }
-    }
+    // Event delegation — all interactions bubble up to root
+    root.addEventListener('click', handleClick);
+    root.addEventListener('input', handleInput);
+    root.addEventListener('change', handleChange);
 
-    useEffect(() => {
-        reloadAll();
-    }, []);
+    loadAll();
+    loadFiltered();
+}
 
-    // ── Reload filtered/sorted table whenever filter/sort state changes ───────
-    useEffect(() => {
-        clearTimeout(debounceRef.current);
-        const delay = search !== '' ? 250 : 0;
-
-        debounceRef.current = setTimeout(async () => {
-            setLoading(true);
-            try {
-                const data = await fetchEmployees({ search, department: deptFilter, sort: sortCol, order: sortOrder });
-                setEmployees(data);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        }, delay);
-
-        return () => clearTimeout(debounceRef.current);
-    }, [search, deptFilter, sortCol, sortOrder]);
-
-    // ── Sort toggle ───────────────────────────────────────────────────────────
-    function handleSort(col) {
-        if (col === sortCol) {
-            setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+// ── Event handlers ────────────────────────────────────────────────────────────
+function handleClick(e) {
+    // Column sort (th[data-col])
+    const th = e.target.closest('th[data-col]');
+    if (th) {
+        const col = th.dataset.col;
+        if (col === state.sortCol) {
+            state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
         } else {
-            setSortCol(col);
-            setSortOrder('asc');
+            state.sortCol = col;
+            state.sortOrder = 'asc';
         }
+        state.page = 1;
+        loadFiltered();
+        return;
     }
 
-    // ── Delete an employee ─────────────────────────────────────────────────────
-    async function handleDelete(id) {
-        await deleteEmployee(id);
-        await reloadAll();
-        const data = await fetchEmployees({ search, department: deptFilter, sort: sortCol, order: sortOrder });
-        setEmployees(data);
+    // Pagination
+    if (e.target.id === 'btn-prev') { state.page--; renderTable(); return; }
+    if (e.target.id === 'btn-next') { state.page++; renderTable(); return; }
+
+    // Add employee
+    if (e.target.closest('#btn-add')) {
+        openModal(null, state.departments, handleSaved);
+        return;
     }
 
-    // ── After a save: reload data + close modal ───────────────────────────────
-    async function handleSaved() {
-        await reloadAll();
-        // Also refresh the current filtered view
-        const data = await fetchEmployees({ search, department: deptFilter, sort: sortCol, order: sortOrder });
-        setEmployees(data);
+    // Edit employee
+    const editBtn = e.target.closest('.btn-edit');
+    if (editBtn) {
+        const id = Number(editBtn.dataset.id);
+        const emp = state.employees.find(emp => emp.id === id);
+        if (emp) openModal(emp, state.departments, handleSaved);
+        return;
     }
 
-    // ── Result count for toolbar ──────────────────────────────────────────────
-    const resultCount = loading
+    // Delete employee
+    const delBtn = e.target.closest('.btn-delete');
+    if (delBtn) {
+        const id = Number(delBtn.dataset.id);
+        const emp = state.employees.find(emp => emp.id === id);
+        if (emp && confirm(`Delete ${emp.name}? This cannot be undone.`)) {
+            deleteEmployee(id)
+                .then(() => Promise.all([loadAll(), loadFiltered()]))
+                .catch(console.error);
+        }
+        return;
+    }
+}
+
+function handleInput(e) {
+    if (e.target.id === 'search-input') {
+        state.search = e.target.value;
+        state.page = 1;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(loadFiltered, 250);
+    }
+}
+
+function handleChange(e) {
+    if (e.target.id === 'dept-filter') {
+        state.deptFilter = e.target.value;
+        state.page = 1;
+        loadFiltered();
+    }
+}
+
+// ── Data loaders ──────────────────────────────────────────────────────────────
+
+/** Reload unfiltered list, departments, stats, chart. */
+async function loadAll() {
+    try {
+        const [all, depts, salaryData] = await Promise.all([
+            fetchEmployees(),
+            fetchDepartments(),
+            fetchSalaryByDepartment(),
+        ]);
+
+        const deptsChanged =
+            depts.length !== state.departments.length ||
+            depts.some((d, i) => d !== state.departments[i]);
+
+        state.allEmployees = all;
+        state.departments = depts;
+
+        renderStats();
+        updateChart(document.getElementById('chart-root'), salaryData);
+
+        // Re-render toolbar only when departments list actually changed
+        if (deptsChanged) renderToolbarSection();
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+/** Reload the filtered/sorted employee list and refresh the table. */
+async function loadFiltered() {
+    state.loading = true;
+    renderTable();
+    try {
+        const data = await fetchEmployees({
+            search: state.search,
+            department: state.deptFilter,
+            sort: state.sortCol,
+            order: state.sortOrder,
+        });
+        state.employees = data;
+    } catch (err) {
+        console.error(err);
+        state.employees = [];
+    } finally {
+        state.loading = false;
+        renderTable();
+        updateResultCount();
+    }
+}
+
+async function handleSaved() {
+    await Promise.all([loadAll(), loadFiltered()]);
+}
+
+// ── Renderers ─────────────────────────────────────────────────────────────────
+function renderStats() {
+    document.getElementById('stats-root').innerHTML = renderStatsRow(state.allEmployees);
+}
+
+/** Full toolbar re-render (only when departments change or on init). */
+function renderToolbarSection() {
+    const resultCount = state.loading
         ? ''
-        : `${employees.length} result${employees.length !== 1 ? 's' : ''}`;
+        : `${state.employees.length} result${state.employees.length !== 1 ? 's' : ''}`;
 
-    return html`
-    <${Header}/>
+    document.getElementById('toolbar-root').innerHTML = renderToolbar({
+        departments: state.departments,
+        search: state.search,
+        deptFilter: state.deptFilter,
+        resultCount,
+    });
+}
 
-    <div class="container">
-      <${StatsRow} allEmployees=${allEmployees}/>
+/** Update only the result-count span — avoids disrupting the search input focus. */
+function updateResultCount() {
+    // Ensure toolbar is rendered at least once
+    const toolbarRoot = document.getElementById('toolbar-root');
+    if (!toolbarRoot.innerHTML) { renderToolbarSection(); return; }
 
-      <${SalaryPieChart} refreshKey=${chartKey}/>
+    const span = document.getElementById('resultCount');
+    if (span) {
+        span.textContent = state.loading
+            ? ''
+            : `${state.employees.length} result${state.employees.length !== 1 ? 's' : ''}`;
+    }
+}
 
-      <${Toolbar}
-        departments=${departments}
-        search=${search}
-        deptFilter=${deptFilter}
-        resultCount=${resultCount}
-        onSearch=${setSearch}
-        onDeptChange=${setDeptFilter}
-        onAddClick=${() => setModalEmployee(false)}
-      />
-
-      <${EmployeeTable}
-        employees=${employees}
-        loading=${loading}
-        sortCol=${sortCol}
-        sortOrder=${sortOrder}
-        onSort=${handleSort}
-        onEdit=${emp => setModalEmployee(emp)}
-        onDelete=${handleDelete}
-      />
-    </div>
-
-    <${Modal}
-      open=${modalEmployee !== null}
-      employee=${modalEmployee === false ? null : modalEmployee}
-      departments=${departments}
-      onClose=${() => setModalEmployee(null)}
-      onSaved=${handleSaved}
-    />
-  `;
+function renderTable() {
+    document.getElementById('table-root').innerHTML = renderEmployeeTable({
+        employees: state.employees,
+        loading: state.loading,
+        sortCol: state.sortCol,
+        sortOrder: state.sortOrder,
+        page: state.page,
+    });
 }

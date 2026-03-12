@@ -18,3 +18,13 @@ export function formatDate(d) {
 export function formatSalary(n) {
     return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0 });
 }
+
+/** Escape HTML special chars to prevent XSS in innerHTML templates. */
+export function esc(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}

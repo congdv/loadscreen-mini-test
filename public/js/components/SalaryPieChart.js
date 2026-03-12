@@ -1,6 +1,4 @@
-import { html } from 'htm/preact';
-import { useState, useEffect, useRef } from 'preact/hooks';
-import { fetchSalaryByDepartment } from '../api.js';
+import { esc } from '../utils.js';
 
 const PALETTE = [
     '#0f3460', '#1a6b8a', '#2e8b57', '#e0a020', '#a0522d',
@@ -25,17 +23,16 @@ function drawPieChart(canvas, data) {
     const cx = SIZE / 2;
     const cy = SIZE / 2;
     const radius = 104;
-    const innerRadius = 46; // donut hole
+    const innerRadius = 46;
 
     const total = data.reduce((s, d) => s + d.total_salary, 0);
-    let startAngle = -Math.PI / 2; // start at top
+    let startAngle = -Math.PI / 2;
 
     data.forEach((item, i) => {
         const slice = (item.total_salary / total) * 2 * Math.PI;
         const endAngle = startAngle + slice;
         const color = PALETTE[i % PALETTE.length];
 
-        // Slice fill
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, radius, startAngle, endAngle);
@@ -43,12 +40,10 @@ function drawPieChart(canvas, data) {
         ctx.fillStyle = color;
         ctx.fill();
 
-        // Divider stroke
         ctx.strokeStyle = '#f0f2f5';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Percentage label (only if slice is wide enough)
         if (slice > 0.25) {
             const midAngle = startAngle + slice / 2;
             const labelR = (radius + innerRadius) / 2;
@@ -83,51 +78,40 @@ function drawPieChart(canvas, data) {
     ctx.fillText(formatCurrency(total), cx, cy + 8);
 }
 
-export function SalaryPieChart({ refreshKey = 0 }) {
-    const canvasRef = useRef(null);
-    const [data, setData] = useState([]);
-    const [error, setError] = useState(null);
+/** Render the static chart card shell (call once on init). */
+export function renderChartShell() {
+    return `
+    <div class="chart-card">
+      <h2 class="chart-title">Salary by Department</h2>
+      <div id="chart-inner"></div>
+    </div>`;
+}
 
-    useEffect(() => {
-        fetchSalaryByDepartment()
-            .then(rows => { setData(rows); setError(null); })
-            .catch(err => setError(err.message));
-    }, [refreshKey]);
+/** Update the chart contents with fresh data (call after any mutation). */
+export function updateChart(container, data) {
+    const inner = container.querySelector('#chart-inner');
+    if (!inner) return;
 
-    useEffect(() => {
-        if (canvasRef.current && data.length > 0) {
-            drawPieChart(canvasRef.current, data);
-        }
-    }, [data]);
+    if (!data || data.length === 0) {
+        inner.innerHTML = '<p class="chart-loading">Loading chart\u2026</p>';
+        return;
+    }
 
     const total = data.reduce((s, d) => s + d.total_salary, 0);
 
-    return html`
-        <div class="chart-card">
-            <h2 class="chart-title">Salary by Department</h2>
+    const legendItems = data.map((item, i) => `
+      <li>
+        <span class="legend-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>
+        <span class="legend-dept">${esc(item.department)}</span>
+        <span class="legend-salary">${esc(formatCurrency(item.total_salary))}</span>
+        <span class="legend-pct">${((item.total_salary / total) * 100).toFixed(1)}%</span>
+      </li>`).join('');
 
-            ${error && html`<p class="chart-error">${error}</p>`}
+    inner.innerHTML = `
+      <div class="chart-body">
+        <canvas aria-label="Salary by department pie chart" role="img"></canvas>
+        <ul class="chart-legend">${legendItems}</ul>
+      </div>`;
 
-            ${!error && data.length === 0 && html`
-                <p class="chart-loading">Loading chart…</p>
-            `}
-
-            ${data.length > 0 && html`
-                <div class="chart-body">
-                    <canvas ref=${canvasRef} aria-label="Salary by department pie chart" role="img"></canvas>
-
-                    <ul class="chart-legend">
-                        ${data.map((item, i) => html`
-                            <li key=${item.department}>
-                                <span class="legend-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>
-                                <span class="legend-dept">${item.department}</span>
-                                <span class="legend-salary">${formatCurrency(item.total_salary)}</span>
-                                <span class="legend-pct">${((item.total_salary / total) * 100).toFixed(1)}%</span>
-                            </li>
-                        `)}
-                    </ul>
-                </div>
-            `}
-        </div>
-    `;
+    drawPieChart(inner.querySelector('canvas'), data);
 }

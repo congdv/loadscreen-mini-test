@@ -1,7 +1,5 @@
-import { html } from 'htm/preact';
-
-export function Header() {
-    return html`
+export function renderHeader() {
+  return `
     <header>
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
         <circle cx="18" cy="18" r="18" fill="rgba(255,255,255,0.1)"/>
@@ -13,5 +11,5 @@ export function Header() {
         <p>Manage and view all company employees</p>
       </div>
     </header>
-  `;
+    `;
 }
