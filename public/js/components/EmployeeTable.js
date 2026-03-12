@@ -3,20 +3,20 @@ import { avatarColor, initials, formatDate, formatSalary } from '../utils.js';
 import { DEPT_COLORS } from '../config.js';
 
 const COLUMNS = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Employee' },
-    { key: 'department', label: 'Department' },
-    { key: 'position', label: 'Position' },
-    { key: 'hire_date', label: 'Hire Date' },
-    { key: 'salary', label: 'Salary' },
+  { key: 'id', label: 'ID' },
+  { key: 'name', label: 'Employee' },
+  { key: 'department', label: 'Department' },
+  { key: 'position', label: 'Position' },
+  { key: 'hire_date', label: 'Hire Date' },
+  { key: 'salary', label: 'Salary' },
 ];
 
-function EmployeeRow({ emp, onEdit }) {
-    const color = avatarColor(emp.name);
-    const abbr = initials(emp.name);
-    const [deptBg, deptText] = DEPT_COLORS[emp.department] || ['#e0e0e0', '#555'];
+function EmployeeRow({ emp, onEdit, onDelete }) {
+  const color = avatarColor(emp.name);
+  const abbr = initials(emp.name);
+  const [deptBg, deptText] = DEPT_COLORS[emp.department] || ['#e0e0e0', '#555'];
 
-    return html`
+  return html`
     <tr>
       <td>#${emp.id}</td>
       <td>
@@ -38,13 +38,16 @@ function EmployeeRow({ emp, onEdit }) {
       <td>${formatSalary(emp.salary)}</td>
       <td>
         <button class="btn-edit" onClick=${() => onEdit(emp)}>Edit</button>
+        <button class="btn-delete" onClick=${() => {
+      if (confirm(`Delete ${emp.name}? This cannot be undone.`)) onDelete(emp.id);
+    }}>Delete</button>
       </td>
     </tr>
   `;
 }
 
-export function EmployeeTable({ employees, loading, sortCol, sortOrder, onSort, onEdit }) {
-    return html`
+export function EmployeeTable({ employees, loading, sortCol, sortOrder, onSort, onEdit, onDelete }) {
+  return html`
     <div class="table-wrap">
       <table>
         <thead>
@@ -65,9 +68,9 @@ export function EmployeeTable({ employees, loading, sortCol, sortOrder, onSort, 
         </thead>
         <tbody>
           ${loading
-            ? html`<tr><td colspan="7" style="text-align:center;padding:40px;color:#aaa;font-size:0.9rem">Loading employees…</td></tr>`
-            : employees.length === 0
-                ? html`
+      ? html`<tr><td colspan="7" style="text-align:center;padding:40px;color:#aaa;font-size:0.9rem">Loading employees…</td></tr>`
+      : employees.length === 0
+        ? html`
                   <tr><td colspan="7">
                     <div class="empty-state">
                       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -76,7 +79,7 @@ export function EmployeeTable({ employees, loading, sortCol, sortOrder, onSort, 
                       <p>No employees match your search.</p>
                     </div>
                   </td></tr>`
-                : employees.map(emp => html`<${EmployeeRow} key=${emp.id} emp=${emp} onEdit=${onEdit}/>`)}
+        : employees.map(emp => html`<${EmployeeRow} key=${emp.id} emp=${emp} onEdit=${onEdit} onDelete=${onDelete}/>`)}  
         </tbody>
       </table>
     </div>

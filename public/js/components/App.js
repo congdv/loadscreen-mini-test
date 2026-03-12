@@ -1,6 +1,6 @@
 import { html } from 'htm/preact';
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { fetchDepartments, fetchEmployees } from '../api.js';
+import { fetchDepartments, fetchEmployees, deleteEmployee } from '../api.js';
 import { Header } from './Header.js';
 import { StatsRow } from './StatsRow.js';
 import { Toolbar } from './Toolbar.js';
@@ -79,6 +79,14 @@ export function App() {
         }
     }
 
+    // ── Delete an employee ─────────────────────────────────────────────────────
+    async function handleDelete(id) {
+        await deleteEmployee(id);
+        await reloadAll();
+        const data = await fetchEmployees({ search, department: deptFilter, sort: sortCol, order: sortOrder });
+        setEmployees(data);
+    }
+
     // ── After a save: reload data + close modal ───────────────────────────────
     async function handleSaved() {
         await reloadAll();
@@ -115,6 +123,7 @@ export function App() {
         sortOrder=${sortOrder}
         onSort=${handleSort}
         onEdit=${emp => setModalEmployee(emp)}
+        onDelete=${handleDelete}
       />
     </div>
 

@@ -88,6 +88,18 @@ app.put('/api/employees/:id', (req, res) => {
   }
 });
 
+app.delete('/api/employees/:id', (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const existing = db.prepare('SELECT id FROM employees WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Employee not found.' });
+    db.prepare('DELETE FROM employees WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
 app.get('/api/departments', (req, res) => {
   const departments = db.prepare('SELECT DISTINCT department FROM employees ORDER BY department').all();
   res.json(departments.map(d => d.department));

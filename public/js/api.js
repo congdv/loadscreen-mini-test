@@ -50,3 +50,13 @@ export async function updateEmployee(id, payload) {
     const data = await res.json();
     return { ok: res.ok, status: res.status, data };
 }
+
+/**
+ * Delete an employee (DELETE).
+ * @param {number} id
+ * @returns {Promise<{ ok: boolean, status: number }>}
+ */
+export async function deleteEmployee(id) {
+    const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+    return { ok: res.ok, status: res.status };
+}
