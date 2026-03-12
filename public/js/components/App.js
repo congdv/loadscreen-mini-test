@@ -6,6 +6,7 @@ import { StatsRow } from './StatsRow.js';
 import { Toolbar } from './Toolbar.js';
 import { EmployeeTable } from './EmployeeTable.js';
 import { Modal } from './Modal.js';
+import { SalaryPieChart } from './SalaryPieChart.js';
 
 export function App() {
     // ── Data ──────────────────────────────────────────────────────────────────
@@ -13,6 +14,7 @@ export function App() {
     const [employees, setEmployees] = useState([]); // currently displayed (filtered/sorted)
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [chartKey, setChartKey] = useState(0);
 
     // ── Filter / sort state ───────────────────────────────────────────────────
     const [search, setSearch] = useState('');
@@ -40,6 +42,7 @@ export function App() {
             ]);
             setAllEmployees(all);
             setDepartments(depts);
+            setChartKey(k => k + 1);
         } catch (err) {
             console.error(err);
         }
@@ -105,6 +108,8 @@ export function App() {
 
     <div class="container">
       <${StatsRow} allEmployees=${allEmployees}/>
+
+      <${SalaryPieChart} refreshKey=${chartKey}/>
 
       <${Toolbar}
         departments=${departments}

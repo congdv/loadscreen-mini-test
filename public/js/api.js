@@ -60,3 +60,13 @@ export async function deleteEmployee(id) {
     const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
     return { ok: res.ok, status: res.status };
 }
+
+/**
+ * Fetch total salary grouped by department.
+ * @returns {Promise<Array<{ department: string, total_salary: number }>>}
+ */
+export async function fetchSalaryByDepartment() {
+    const res = await fetch('/api/salary-by-department');
+    if (!res.ok) throw new Error('Failed to load salary data.');
+    return res.json();
+}

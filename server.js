@@ -105,6 +105,13 @@ app.get('/api/departments', (req, res) => {
   res.json(departments.map(d => d.department));
 });
 
+app.get('/api/salary-by-department', (req, res) => {
+  const rows = db.prepare(
+    'SELECT department, SUM(salary) AS total_salary FROM employees GROUP BY department ORDER BY department'
+  ).all();
+  res.json(rows);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

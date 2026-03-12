@@ -566,3 +566,94 @@ td {
     background: #ffe0e0;
     border-color: #b91c1c;
 }
+
+/* ── Salary Pie Chart ── */
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.chart-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.chart-body {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.chart-body canvas {
+    flex-shrink: 0;
+    display: block;
+}
+
+.chart-legend {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.chart-legend li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.legend-dept {
+    flex: 1;
+    color: #333;
+    font-weight: 500;
+}
+
+.legend-salary {
+    color: #0f3460;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.legend-pct {
+    color: #888;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+    text-align: right;
+}
+
+.chart-loading,
+.chart-error {
+    font-size: 0.9rem;
+    color: #aaa;
+    padding: 20px 0;
+}
+
+.chart-error {
+    color: #c62828;
+}
+
+@media (max-width: 560px) {
+    .chart-body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
