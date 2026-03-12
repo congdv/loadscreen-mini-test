@@ -480,6 +480,48 @@ td {
     display: block;
 }
 
+/* ── Pagination ── */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-top: 1.5px solid #f0f0f0;
+    background: #fafbfc;
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    background: white;
+    color: #0f3460;
+    border: 1.5px solid #c5d5f0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    white-space: nowrap;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #dce8ff;
+    border-color: #0f3460;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+}
+
 /* ── Edit button ── */
 .btn-edit {
     display: inline-flex;

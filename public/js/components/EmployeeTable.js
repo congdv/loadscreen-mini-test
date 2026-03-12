@@ -1,6 +1,9 @@
 import { html } from 'htm/preact';
+import { useState, useEffect } from 'preact/hooks';
 import { avatarColor, initials, formatDate, formatSalary } from '../utils.js';
 import { DEPT_COLORS } from '../config.js';
+
+const PAGE_SIZE = 5;
 
 const COLUMNS = [
   { key: 'id', label: 'ID' },
@@ -47,6 +50,18 @@ function EmployeeRow({ emp, onEdit, onDelete }) {
 }
 
 export function EmployeeTable({ employees, loading, sortCol, sortOrder, onSort, onEdit, onDelete }) {
+
+  const [page, setPage] = useState(1);
+
+  // Reset to first page whenever the employee list changes (search / filter / sort)
+  useEffect(() => {
+    setPage(1);
+  }, [employees]);
+
+  const totalPages = Math.max(1, Math.ceil(employees.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageEmployees = employees.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   return html`
     <div class="table-wrap">
       <table>
@@ -79,9 +94,24 @@ export function EmployeeTable({ employees, loading, sortCol, sortOrder, onSort, 
                       <p>No employees match your search.</p>
                     </div>
                   </td></tr>`
-        : employees.map(emp => html`<${EmployeeRow} key=${emp.id} emp=${emp} onEdit=${onEdit} onDelete=${onDelete}/>`)}  
+        : pageEmployees.map(emp => html`<${EmployeeRow} key=${emp.id} emp=${emp} onEdit=${onEdit} onDelete=${onDelete}/>`)}
         </tbody>
       </table>
+      ${!loading && employees.length > 0 && html`
+        <div class="pagination">
+          <button
+            class="pagination-btn"
+            disabled=${safePage === 1}
+            onClick=${() => setPage(p => p - 1)}
+          >← Previous</button>
+          <span class="pagination-info">Page ${safePage} of ${totalPages}</span>
+          <button
+            class="pagination-btn"
+            disabled=${safePage === totalPages}
+            onClick=${() => setPage(p => p + 1)}
+          >Next →</button>
+        </div>
+      `}
     </div>
   `;
 }
